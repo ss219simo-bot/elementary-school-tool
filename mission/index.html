@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ミッション・クエスト</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #0a0818;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(126,214,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(126,214,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .stars {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+  }
+  .star {
+    position: absolute; border-radius: 50%; background: #fff;
+    animation: twinkle var(--dur) ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  /* ===================== Layout ===================== */
+  .wrapper {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: clamp(16px, 3vh, 32px);
+    width: 100%;
+    max-width: 960px;
+    padding: clamp(16px, 3vw, 32px) clamp(16px, 4vw, 40px);
+  }
+
+  /* ===================== Header ===================== */
+  .header { text-align: center; }
+  .header-sub {
+    font-size: clamp(0.85rem, 2vw, 1.2rem);
+    font-weight: 700;
+    color: #ffe066;
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+    text-shadow: 0 0 20px rgba(255,224,102,0.8);
+  }
+  .header-title {
+    font-size: clamp(2.2rem, 6vw, 5rem);
+    font-weight: 900;
+    line-height: 1;
+    background: linear-gradient(135deg, #ffe066 0%, #ff9de2 50%, #7ed6ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 30px rgba(255,224,102,0.5));
+  }
+
+  /* ===================== Slot machine ===================== */
+  .slot-machine {
+    background: linear-gradient(180deg, #12103a 0%, #0d0b2e 100%);
+    border: 3px solid rgba(126,214,255,0.3);
+    border-radius: clamp(16px, 3vw, 32px);
+    padding: clamp(16px, 2.5vw, 28px) clamp(20px, 4vw, 40px) clamp(20px, 3vw, 36px);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06),
+      0 0 60px rgba(126,214,255,0.15),
+      0 0 120px rgba(255,120,180,0.1),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: clamp(14px, 2vh, 22px);
+    width: 100%;
+    transition: box-shadow 0.6s, border-color 0.6s;
+  }
+  .slot-machine.lit {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.1),
+      0 0 80px rgba(255,224,102,0.35),
+      0 0 160px rgba(255,120,180,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    border-color: rgba(255,224,102,0.55);
+  }
+
+  .slot-label {
+    font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.2em;
+  }
+
+  /* ===================== Slot window ===================== */
+  .slot-window-outer {
+    width: 100%;
+    background: #050412;
+    border-radius: clamp(12px, 2vw, 20px);
+    border: 2px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.9);
+  }
+  .slot-window-outer::before,
+  .slot-window-outer::after {
+    content: '';
+    position: absolute; left: 0; right: 0;
+    height: clamp(40px, 8vh, 80px);
+    z-index: 10; pointer-events: none;
+  }
+  .slot-window-outer::before {
+    top: 0;
+    background: linear-gradient(to bottom, #050412 0%, transparent 100%);
+  }
+  .slot-window-outer::after {
+    bottom: 0;
+    background: linear-gradient(to top, #050412 0%, transparent 100%);
+  }
+
+  .slot-highlight {
+    position: absolute; top: 50%; left: 0; right: 0;
+    transform: translateY(-50%);
+    height: var(--item-h);
+    background: rgba(255,224,102,0.03);
+    border-top: 2.5px solid rgba(255,224,102,0.5);
+    border-bottom: 2.5px solid rgba(255,224,102,0.5);
+    z-index: 5; pointer-events: none;
+  }
+
+  .slot-window {
+    height: var(--item-h);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .slot-reel { display: flex; flex-direction: column; }
+
+  .slot-item {
+    height: var(--item-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 clamp(16px, 4vw, 40px);
+    flex-shrink: 0;
+  }
+
+  .slot-item-name {
+    font-size: clamp(1.6rem, 4vw, 3rem);
+    font-weight: 900;
+    color: #fff;
+    text-align: center;
+    line-height: 1.25;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.9);
+    /* Force single line on wide screens, allow wrap on narrow */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  /* ===================== Result panel ===================== */
+  .result-panel {
+    width: 100%;
+    min-height: clamp(70px, 14vh, 120px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: clamp(8px, 1.5vh, 14px);
+  }
+
+  .placeholder-text {
+    font-size: clamp(1rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.05em;
+  }
+
+  .result-cat-badge {
+    font-size: clamp(0.85rem, 1.8vw, 1.1rem);
+    font-weight: 700;
+    padding: 6px 22px;
+    border-radius: 99px;
+    letter-spacing: 0.1em;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+  .result-cat-badge.show { opacity: 1; transform: translateY(0); }
+
+  .result-desc {
+    font-size: clamp(1.1rem, 2.5vw, 2rem);
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    line-height: 1.7;
+    max-width: 820px;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.5s 0.2s, transform 0.5s 0.2s;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+  }
+  .result-desc.show { opacity: 1; transform: translateY(0); }
+
+  /* ===================== Button ===================== */
+  .spin-btn {
+    padding: clamp(14px, 2.5vh, 22px) clamp(40px, 8vw, 80px);
+    border-radius: 99px;
+    background: linear-gradient(135deg, #ffe066, #ffb347);
+    border: none;
+    color: #1a0f00;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: clamp(1.2rem, 3vw, 2.2rem);
+    cursor: pointer;
+    box-shadow: 0 0 0 4px rgba(255,220,80,0.25), 0 8px 40px rgba(255,180,0,0.5);
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.1em;
+    position: relative; overflow: hidden;
+    white-space: nowrap;
+  }
+  .spin-btn::after {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0%{left:-100%} 50%,100%{left:150%} }
+  .spin-btn:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 0 0 6px rgba(255,220,80,0.35), 0 16px 50px rgba(255,180,0,0.6);
+  }
+  .spin-btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+  .spin-btn:disabled { opacity: 0.6; cursor: default; }
+
+  /* ===================== Confetti ===================== */
+  .confetti-container {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 200; overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute; top: -20px;
+    animation: confettiFall var(--dur) var(--delay) ease-in forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(105vh) rotate(var(--rot)) translateX(var(--drift)); opacity: 0; }
+  }
+
+  /* ===================== Landscape phone ===================== */
+  @media (max-height: 500px) {
+    .header-title { font-size: clamp(1.6rem, 5vw, 2.8rem); }
+    .header-sub { font-size: 0.75rem; margin-bottom: 2px; }
+    .wrapper { gap: 10px; padding: 10px 16px; }
+    .slot-machine { gap: 10px; padding: 12px 20px; }
+    .result-panel { min-height: 60px; gap: 6px; }
+  }
+
+  /* トップに戻るリンク */
+  .back-link {
+    position: fixed;
+    top: clamp(12px, 2vw, 20px);
+    left: clamp(12px, 2vw, 20px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 7px 16px;
+    border-radius: 99px;
+    transition: color 0.2s, background 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .back-link:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.12);
+  }
+</style>
+</head>
+<body>
+
+<a href="../" class="back-link">← もどる</a>
+<div class="stars" id="stars"></div>
+<div class="confetti-container" id="confetti"></div>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="header-sub">今週のミッションをきめよう！</div>
+    <div class="header-title">ミッション・クエスト</div>
+  </div>
+
+  <div class="slot-machine" id="slotMachine">
+    <div class="slot-label">▼ ミッション ▼</div>
+
+    <div class="slot-window-outer">
+      <div class="slot-highlight"></div>
+      <div class="slot-window" id="slotWindow">
+        <div class="slot-reel" id="reel"></div>
+      </div>
+    </div>
+
+    <div class="result-panel">
+      <div class="placeholder-text" id="placeholder">ボタンをおしてスタート！</div>
+      <div class="result-cat-badge" id="catBadge"></div>
+      <div class="result-desc" id="resultDesc"></div>
+    </div>
+  </div>
+
+  <button class="spin-btn" id="spinBtn">スタート！</button>
+</div>
+
+<script>
+// =====================================================
+// Google Sheets CSV URL
+// スプレッドシートを「ウェブに公開」した後、
+// 下のURLをCSV形式の公開URLに書き換えてください。
+// 例: https://docs.google.com/spreadsheets/d/XXXX/export?format=csv&gid=0
+// =====================================================
+const SHEET_CSV_URL = 'YOUR_GOOGLE_SHEETS_CSV_URL_HERE';
+
+const CAT_STYLES = {
+  'コミュニケーション': { color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  '親切・サポート':     { color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  '環境・マナー':       { color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  'ポジティブ':         { color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  '学習・規律':         { color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+};
+
+// CSVをパースしてMISSION配列を作る
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const missions = [];
+  // 1行目はヘッダーなのでスキップ
+  for (let i = 1; i < lines.length; i++) {
+    // カンマ区切り（ダブルクォート対応）
+    const cols = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
+    const [cat, name, desc, enabled] = clean;
+    if (!name || enabled === 'FALSE') continue;
+    const style = CAT_STYLES[cat] || CAT_STYLES['コミュニケーション'];
+    missions.push({ name, desc, cat, ...style });
+  }
+  return missions;
+}
+
+// フォールバック用データ（スプレッドシート未設定時に使う）
+const FALLBACK_MISSIONS = [
+  { name: '「ありがとう」の運び屋', desc: '今週は、友達や先生に\n1日3回以上「ありがとう」と伝えよう。', cat: 'コミュニケーション', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { name: 'あいさつの山びこ', desc: '今週は、自分からあいさつをして\n相手からも返ってきたら成功！', cat: 'コミュニケーション', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { name: '名前呼び大作戦', desc: '今週は、「おはよう」「貸して」などの前に\n必ず相手の名前をつけて呼ぼう。', cat: 'コミュニケーション', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { name: '笑顔のパス', desc: '今週は、目が合った友達に\n自分からニコッと笑いかけよう。', cat: 'コミュニケーション', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { name: '秘密のサポーター', desc: '今週は、誰にもバレないように\nクラスの誰かが困っていたらこっそり助けよう。', cat: '親切・サポート', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { name: 'サンクス・スカウト', desc: '今週は、友達が誰かに親切にしているところを\n1つ見つけて金曜の帰りの会で先生に教えよう。', cat: '親切・サポート', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { name: 'ドア・エスコート', desc: '今週は、後ろから誰かが来ている時\nドアをそっと押さえて待ってあげよう。', cat: '親切・サポート', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { name: 'お助けレンジャー', desc: '今週は、先生や友達が何かを配っている時\n「手伝うよ」と声をかけよう。', cat: '親切・サポート', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { name: '机の上の鏡', desc: '今週は、授業が終わるたびに\n机の上を何もない状態にリセットしよう。', cat: '環境・マナー', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { name: '下駄箱の守護神', desc: '今週は、隣の人の靴がはみ出していたら\nそっと揃えてあげよう。', cat: '環境・マナー', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { name: '消しカス・ハンター', desc: '今週は、自分の席の周りの消しゴムのカスを\n一つ残らず拾って捨てよう。', cat: '環境・マナー', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { name: '忍者の廊下', desc: '今週は、廊下を歩く時\n足音を一切立てない「忍者の足取り」で移動しよう。', cat: '環境・マナー', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { name: 'ポジティブ翻訳', desc: '今週は、「めんどくさい」などの言葉を\n「よし、やってみよう！」と言い換えよう。', cat: 'ポジティブ', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { name: 'クラスの宝探し', desc: '今週は、教室の中で\n「先週まで気づかなかった良いところ」を1つ見つけよう。', cat: 'ポジティブ', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { name: '「どんまい」の魔法', desc: '今週は、誰かが失敗した時に\n真っ先に「どんまい！」「大丈夫！」と声をかけよう。', cat: 'ポジティブ', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { name: '一歩踏み出しクエスト', desc: '今週のうちに、「ちょっと苦手だな」と思うことに\n1回だけ勇気を出して挑戦しよう。', cat: 'ポジティブ', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { name: '挙手マイスター', desc: '今週は、正解かどうかは関係なく\n毎日の授業で必ず1回は手を挙げて意見を伝えよう。', cat: '学習・規律', color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+  { name: '聞き耳の構え', desc: '今週は、発表している友達の方に\n体と心を向けて「全身で」話を聞こう。', cat: '学習・規律', color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+  { name: 'チャイム着席の達人', desc: '今週は、予鈴が鳴り終わった瞬間に\n席について教科書を開いている状態にしよう。', cat: '学習・規律', color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+  { name: '質問の種まき', desc: '今週は、「なぜ？」「どうして？」と思ったことを\nノートにメモするか先生に質問しよう。', cat: '学習・規律', color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+];
+
+let MISSIONS = [];
+
+// ---- Item height: responsive via CSS variable ----
+function getItemH() {
+  if (window.innerHeight < 500) return 90;
+  if (window.innerHeight < 700) return 110;
+  return 140;
+}
+
+let ITEM_H = getItemH();
+document.documentElement.style.setProperty('--item-h', ITEM_H + 'px');
+
+// Stars
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 60; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = 1.5 + Math.random() * 3;
+  s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}vw;top:${Math.random()*100}vh;--dur:${2+Math.random()*4}s;animation-delay:${Math.random()*4}s`;
+  starsEl.appendChild(s);
+}
+
+const reel = document.getElementById('reel');
+const REPEAT = 5;
+
+// Google Sheets読み込み
+async function loadMissions() {
+  if (!SHEET_CSV_URL || SHEET_CSV_URL === 'YOUR_GOOGLE_SHEETS_CSV_URL_HERE') {
+    MISSIONS = FALLBACK_MISSIONS;
+    return;
+  }
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    const text = await res.text();
+    const loaded = parseCSV(text);
+    MISSIONS = loaded.length > 0 ? loaded : FALLBACK_MISSIONS;
+  } catch (e) {
+    MISSIONS = FALLBACK_MISSIONS;
+  }
+}
+
+function buildReel() {
+  reel.innerHTML = '';
+  for (let r = 0; r < REPEAT; r++) {
+    MISSIONS.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'slot-item';
+      div.innerHTML = `<div class="slot-item-name">${m.name}</div>`;
+      reel.appendChild(div);
+    });
+  }
+}
+
+let currentOffset = 0;
+let isSpinning = false;
+const spinBtn    = document.getElementById('spinBtn');
+const slotMachine = document.getElementById('slotMachine');
+const placeholder = document.getElementById('placeholder');
+const catBadge   = document.getElementById('catBadge');
+const resultDesc  = document.getElementById('resultDesc');
+
+function spin() {
+  if (isSpinning) return;
+  isSpinning = true;
+  spinBtn.disabled = true;
+  slotMachine.classList.remove('lit');
+  placeholder.style.display = 'none';
+  catBadge.classList.remove('show');
+  resultDesc.classList.remove('show');
+
+  const targetIndex = Math.floor(Math.random() * MISSIONS.length);
+  const mission = MISSIONS[targetIndex];
+
+  const N = MISSIONS.length;
+  const targetAbsoluteOffset = 2 * N * ITEM_H + targetIndex * ITEM_H;
+  const fullRounds = 4 * N * ITEM_H;
+  const remaining = (targetAbsoluteOffset - currentOffset % (N * ITEM_H) + N * ITEM_H) % (N * ITEM_H);
+  const endOffset = currentOffset + fullRounds + remaining;
+
+  const duration = 3400;
+  const startOffset = currentOffset;
+  const startTime = performance.now();
+
+  function easeOutQuint(t) { return 1 - Math.pow(1 - t, 5); }
+
+  function animate(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    const eased = t < 0.7
+      ? t * 0.82 / 0.7
+      : 0.82 + easeOutQuint((t - 0.7) / 0.3) * 0.18;
+
+    reel.style.transform = `translateY(-${startOffset + (endOffset - startOffset) * eased}px)`;
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      currentOffset = 2 * N * ITEM_H + targetIndex * ITEM_H;
+      reel.style.transform = `translateY(-${currentOffset}px)`;
+      isSpinning = false;
+      spinBtn.disabled = false;
+      spinBtn.textContent = 'もう一度！';
+      showResult(mission);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function showResult(m) {
+  slotMachine.classList.add('lit');
+
+  catBadge.textContent = m.cat;
+  catBadge.style.background = m.bg;
+  catBadge.style.color = m.color;
+  catBadge.style.border = `2.5px solid ${m.border}`;
+  catBadge.style.textShadow = `0 0 14px ${m.color}`;
+
+  // Render \n as <br>
+  resultDesc.innerHTML = m.desc.replace(/\n/g, '<br>');
+
+  setTimeout(() => catBadge.classList.add('show'), 150);
+  setTimeout(() => resultDesc.classList.add('show'), 350);
+  setTimeout(() => launchConfetti(m.color), 550);
+}
+
+function launchConfetti(color) {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = [color, '#ffe066', '#ff7eb3', '#7ed6ff', '#ffffff', '#a8edbc'];
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const size = 8 + Math.random() * 12;
+    p.style.cssText = `left:${Math.random()*100}vw;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'3px'};--dur:${1.8+Math.random()*2}s;--delay:${Math.random()*0.6}s;--drift:${Math.random()*300-150}px;--rot:${Math.random()*720}deg;`;
+    container.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  }
+}
+
+// Resize: rebuild reel with new ITEM_H
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const newH = getItemH();
+    if (newH === ITEM_H) return;
+    ITEM_H = newH;
+    document.documentElement.style.setProperty('--item-h', ITEM_H + 'px');
+    buildReel();
+    currentOffset = MISSIONS.length * ITEM_H;
+    reel.style.transform = `translateY(-${currentOffset}px)`;
+    // reset result
+    placeholder.style.display = '';
+    placeholder.textContent = 'ボタンをおしてスタート！';
+    catBadge.classList.remove('show');
+    resultDesc.classList.remove('show');
+    slotMachine.classList.remove('lit');
+    spinBtn.textContent = 'スタート！';
+  }, 200);
+});
+
+// 非同期起動: スプレッドシートを読み込んでからリールを初期化
+(async () => {
+  spinBtn.disabled = true;
+  spinBtn.textContent = '読み込み中...';
+  await loadMissions();
+  buildReel();
+  currentOffset = MISSIONS.length * ITEM_H;
+  reel.style.transform = `translateY(-${currentOffset}px)`;
+  spinBtn.disabled = false;
+  spinBtn.textContent = 'スタート！';
+  spinBtn.addEventListener('click', spin);
+})();
+</script>
+</body>
+</html>
