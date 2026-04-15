@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トークテーマ ルーレット</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #0a1a12;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(100,255,180,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(100,255,180,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.12), transparent);
+    border: 1px solid rgba(255,255,255,0.07);
+    animation: floatUp var(--dur) ease-in-out infinite;
+    opacity: 0;
+  }
+  @keyframes floatUp {
+    0%   { opacity: 0; transform: translateY(0) scale(1); }
+    20%  { opacity: 1; }
+    80%  { opacity: 0.4; }
+    100% { opacity: 0; transform: translateY(-110vh) scale(1.3); }
+  }
+
+  .wrapper {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: clamp(16px, 3vh, 32px);
+    width: 100%;
+    max-width: 960px;
+    padding: clamp(16px, 3vw, 32px) clamp(16px, 4vw, 40px);
+  }
+
+  .header { text-align: center; }
+  .header-sub {
+    font-size: clamp(0.85rem, 2vw, 1.2rem);
+    font-weight: 700;
+    color: #a8ffcc;
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+    text-shadow: 0 0 20px rgba(168,255,204,0.8);
+  }
+  .header-title {
+    font-size: clamp(2.2rem, 6vw, 5rem);
+    font-weight: 900;
+    line-height: 1;
+    background: linear-gradient(135deg, #a8ffcc 0%, #7ed6ff 40%, #ffb3de 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 30px rgba(168,255,204,0.4));
+  }
+
+  .slot-machine {
+    background: linear-gradient(180deg, #0e2a1a 0%, #091a10 100%);
+    border: 3px solid rgba(100,255,180,0.3);
+    border-radius: clamp(16px, 3vw, 32px);
+    padding: clamp(16px, 2.5vw, 28px) clamp(20px, 4vw, 40px) clamp(20px, 3vw, 36px);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.05),
+      0 0 60px rgba(100,255,180,0.12),
+      0 0 120px rgba(126,214,255,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: clamp(14px, 2vh, 22px);
+    width: 100%;
+    transition: box-shadow 0.6s, border-color 0.6s;
+  }
+  .slot-machine.lit {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.1),
+      0 0 80px rgba(168,255,204,0.35),
+      0 0 160px rgba(126,214,255,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    border-color: rgba(168,255,204,0.6);
+  }
+
+  .slot-label {
+    font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.2em;
+  }
+
+  .slot-window-outer {
+    width: 100%;
+    background: #040e07;
+    border-radius: clamp(12px, 2vw, 20px);
+    border: 2px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.9);
+  }
+  .slot-window-outer::before,
+  .slot-window-outer::after {
+    content: '';
+    position: absolute; left: 0; right: 0;
+    height: clamp(40px, 8vh, 80px);
+    z-index: 10; pointer-events: none;
+  }
+  .slot-window-outer::before { top: 0; background: linear-gradient(to bottom, #040e07 0%, transparent 100%); }
+  .slot-window-outer::after  { bottom: 0; background: linear-gradient(to top, #040e07 0%, transparent 100%); }
+
+  .slot-highlight {
+    position: absolute; top: 50%; left: 0; right: 0;
+    transform: translateY(-50%);
+    height: var(--item-h);
+    background: rgba(168,255,204,0.03);
+    border-top: 2.5px solid rgba(168,255,204,0.45);
+    border-bottom: 2.5px solid rgba(168,255,204,0.45);
+    z-index: 5; pointer-events: none;
+  }
+
+  .slot-window { height: var(--item-h); overflow: hidden; position: relative; }
+  .slot-reel { display: flex; flex-direction: column; }
+
+  .slot-item {
+    height: var(--item-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 clamp(16px, 4vw, 40px);
+    flex-shrink: 0;
+  }
+
+  .slot-item-name {
+    font-size: clamp(1.2rem, 2.8vw, 2.2rem);
+    font-weight: 900;
+    color: #fff;
+    text-align: center;
+    line-height: 1.3;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.9);
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  .result-panel {
+    width: 100%;
+    min-height: clamp(60px, 10vh, 100px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: clamp(8px, 1.5vh, 12px);
+  }
+
+  .placeholder-text {
+    font-size: clamp(1rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.05em;
+  }
+
+  .result-cat-badge {
+    font-size: clamp(0.85rem, 1.8vw, 1.1rem);
+    font-weight: 700;
+    padding: 6px 22px;
+    border-radius: 99px;
+    letter-spacing: 0.1em;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+  .result-cat-badge.show { opacity: 1; transform: translateY(0); }
+
+  .result-theme {
+    font-size: clamp(1.1rem, 2.5vw, 2rem);
+    font-weight: 900;
+    color: #fff;
+    text-align: center;
+    line-height: 1.65;
+    max-width: 820px;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.5s 0.2s, transform 0.5s 0.2s;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+  }
+  .result-theme.show { opacity: 1; transform: translateY(0); }
+
+  .spin-btn {
+    padding: clamp(14px, 2.5vh, 22px) clamp(40px, 8vw, 80px);
+    border-radius: 99px;
+    background: linear-gradient(135deg, #a8ffcc, #5de0a0);
+    border: none;
+    color: #002910;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: clamp(1.2rem, 3vw, 2.2rem);
+    cursor: pointer;
+    box-shadow: 0 0 0 4px rgba(168,255,204,0.2), 0 8px 40px rgba(80,220,140,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.1em;
+    position: relative; overflow: hidden;
+    white-space: nowrap;
+  }
+  .spin-btn::after {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0%{left:-100%} 50%,100%{left:150%} }
+  .spin-btn:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 0 0 6px rgba(168,255,204,0.3), 0 16px 50px rgba(80,220,140,0.5);
+  }
+  .spin-btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+  .spin-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .confetti-container { position: fixed; inset: 0; pointer-events: none; z-index: 200; overflow: hidden; }
+  .confetti-piece {
+    position: absolute; top: -20px;
+    animation: confettiFall var(--dur) var(--delay) ease-in forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(105vh) rotate(var(--rot)) translateX(var(--drift)); opacity: 0; }
+  }
+
+  @media (max-height: 500px) {
+    .header-title { font-size: clamp(1.6rem, 5vw, 2.8rem); }
+    .header-sub { font-size: 0.75rem; margin-bottom: 2px; }
+    .wrapper { gap: 10px; padding: 10px 16px; }
+    .slot-machine { gap: 10px; padding: 12px 20px; }
+    .result-panel { min-height: 50px; gap: 6px; }
+  }
+
+  /* トップに戻るリンク */
+  .back-link {
+    position: fixed;
+    top: clamp(12px, 2vw, 20px);
+    left: clamp(12px, 2vw, 20px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 7px 16px;
+    border-radius: 99px;
+    transition: color 0.2s, background 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .back-link:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.12);
+  }
+</style>
+</head>
+<body>
+
+<a href="../" class="back-link">← もどる</a>
+<div class="bubbles" id="bubbles"></div>
+<div class="confetti-container" id="confetti"></div>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="header-sub">今日のトークテーマをきめよう！</div>
+    <div class="header-title">トークルーレット</div>
+  </div>
+
+  <div class="slot-machine" id="slotMachine">
+    <div class="slot-label">▼ テーマ ▼</div>
+    <div class="slot-window-outer">
+      <div class="slot-highlight"></div>
+      <div class="slot-window">
+        <div class="slot-reel" id="reel"></div>
+      </div>
+    </div>
+    <div class="result-panel">
+      <div class="placeholder-text" id="placeholder">ボタンをおしてスタート！</div>
+      <div class="result-cat-badge" id="catBadge"></div>
+      <div class="result-theme" id="resultTheme"></div>
+    </div>
+  </div>
+
+  <button class="spin-btn" id="spinBtn">スタート！</button>
+</div>
+
+<script>
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSfs05d8zXKnyD1F-vMVOTsg_sKiNxoM1R6RYRqpuwW-WhIkzb2e4jaFNCwmZvnF-leEzzsoOI1uWst/pub?gid=1875197403&single=true&output=csv';
+
+const CAT_STYLES = {
+  '学校・友達':   { color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  '家・家族':     { color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  '好きなもの':   { color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  'もしも・想像': { color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  '季節・行事':   { color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+};
+
+// CSVパース（A:カテゴリ B:テーマ C:TRUE/FALSE）
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const themes = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
+    const [cat, theme, enabled] = clean;
+    if (!theme || enabled === 'FALSE') continue;
+    const style = CAT_STYLES[cat] || CAT_STYLES['学校・友達'];
+    themes.push({ theme, cat, ...style });
+  }
+  return themes;
+}
+
+const FALLBACK_THEMES = [
+  { theme: '先生が子どもの頃、一番好きだった給食のメニューは何だったと思う？', cat: '学校・友達', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { theme: '先生が小学生の時、一番仲良かった友達とよくしていた遊びは何だったと思う？', cat: '学校・友達', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { theme: '先生が今まで一番笑った授業中の出来事ってどんなことだと思う？', cat: '学校・友達', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { theme: '先生が小学生の時、一番苦手だった教科は何だったと思う？', cat: '学校・友達', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { theme: '先生がもう一度4年生に戻れるとしたら、まず何をしたいと思う？', cat: '学校・友達', color: '#7ed6ff', bg: 'rgba(126,214,255,0.2)', border: 'rgba(126,214,255,0.7)' },
+  { theme: '先生の休みの日の朝、一番最初にすることは何だと思う？', cat: '家・家族', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { theme: '先生が疲れた時の一番の回復法は何だと思う？', cat: '家・家族', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { theme: '先生の家でのお気に入りの場所はどこだと思う？', cat: '家・家族', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { theme: '先生が子どもの頃、親によく言われた言葉は何だと思う？', cat: '家・家族', color: '#a8edbc', bg: 'rgba(168,237,188,0.2)', border: 'rgba(168,237,188,0.7)' },
+  { theme: '先生が今一番ハマっていることは何だと思う？', cat: '好きなもの', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { theme: '先生が無人島に1つだけ持っていくなら何だと思う？', cat: '好きなもの', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { theme: '先生が今一番食べたいものは何だと思う？', cat: '好きなもの', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { theme: '先生が子どもの頃好きだった本やマンガは何だと思う？', cat: '好きなもの', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { theme: '先生がずっと続けていることや特技は何だと思う？', cat: '好きなもの', color: '#ffcc80', bg: 'rgba(255,204,128,0.2)', border: 'rgba(255,204,128,0.7)' },
+  { theme: '先生が魔法を1つだけ使えるなら何をすると思う？', cat: 'もしも・想像', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { theme: '先生がもし別の仕事をするとしたら何だと思う？', cat: 'もしも・想像', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { theme: '先生が1週間好きなものだけ食べるなら何を選ぶと思う？', cat: 'もしも・想像', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { theme: '先生がタイムマシンで行くなら過去と未来どっち？何年？', cat: 'もしも・想像', color: '#ffb3de', bg: 'rgba(255,179,222,0.2)', border: 'rgba(255,179,222,0.7)' },
+  { theme: '先生が一年で一番好きな季節はいつだと思う？理由も当ててみて', cat: '季節・行事', color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+  { theme: '先生の子どもの頃の一番の夏の思い出は何だと思う？', cat: '季節・行事', color: '#c5b3ff', bg: 'rgba(197,179,255,0.2)', border: 'rgba(197,179,255,0.7)' },
+];
+
+let THEMES = [];
+
+function getItemH() {
+  if (window.innerHeight < 500) return 90;
+  if (window.innerHeight < 700) return 120;
+  return 160;
+}
+
+let ITEM_H = getItemH();
+document.documentElement.style.setProperty('--item-h', ITEM_H + 'px');
+
+// 泡
+const bubblesEl = document.getElementById('bubbles');
+for (let i = 0; i < 18; i++) {
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  const size = 20 + Math.random() * 60;
+  b.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}vw;bottom:-${size}px;--dur:${6+Math.random()*10}s;animation-delay:${Math.random()*8}s`;
+  bubblesEl.appendChild(b);
+}
+
+const reel = document.getElementById('reel');
+const REPEAT = 5;
+
+async function loadThemes() {
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    const text = await res.text();
+    const loaded = parseCSV(text);
+    THEMES = loaded.length > 0 ? loaded : FALLBACK_THEMES;
+  } catch (e) {
+    THEMES = FALLBACK_THEMES;
+  }
+}
+
+function buildReel() {
+  reel.innerHTML = '';
+  for (let r = 0; r < REPEAT; r++) {
+    THEMES.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'slot-item';
+      const short = t.theme.length > 24 ? t.theme.slice(0, 23) + '…' : t.theme;
+      div.innerHTML = `<div class="slot-item-name">${short}</div>`;
+      reel.appendChild(div);
+    });
+  }
+}
+
+let currentOffset = 0;
+let isSpinning = false;
+const spinBtn     = document.getElementById('spinBtn');
+const slotMachine = document.getElementById('slotMachine');
+const placeholder = document.getElementById('placeholder');
+const catBadge    = document.getElementById('catBadge');
+const resultTheme = document.getElementById('resultTheme');
+
+function spin() {
+  if (isSpinning) return;
+  isSpinning = true;
+  spinBtn.disabled = true;
+  slotMachine.classList.remove('lit');
+  placeholder.style.display = 'none';
+  catBadge.classList.remove('show');
+  resultTheme.classList.remove('show');
+
+  const targetIndex = Math.floor(Math.random() * THEMES.length);
+  const picked = THEMES[targetIndex];
+  const N = THEMES.length;
+  const targetAbsoluteOffset = 2 * N * ITEM_H + targetIndex * ITEM_H;
+  const fullRounds = 4 * N * ITEM_H;
+  const remaining = (targetAbsoluteOffset - currentOffset % (N * ITEM_H) + N * ITEM_H) % (N * ITEM_H);
+  const endOffset = currentOffset + fullRounds + remaining;
+  const duration = 3400;
+  const startOffset = currentOffset;
+  const startTime = performance.now();
+
+  function easeOutQuint(t) { return 1 - Math.pow(1 - t, 5); }
+
+  function animate(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    const eased = t < 0.7 ? t * 0.82 / 0.7 : 0.82 + easeOutQuint((t - 0.7) / 0.3) * 0.18;
+    reel.style.transform = `translateY(-${startOffset + (endOffset - startOffset) * eased}px)`;
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      currentOffset = 2 * N * ITEM_H + targetIndex * ITEM_H;
+      reel.style.transform = `translateY(-${currentOffset}px)`;
+      isSpinning = false;
+      spinBtn.disabled = false;
+      spinBtn.textContent = 'もう一度！';
+      showResult(picked);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function showResult(t) {
+  slotMachine.classList.add('lit');
+  catBadge.textContent = t.cat;
+  catBadge.style.background = t.bg;
+  catBadge.style.color = t.color;
+  catBadge.style.border = `2.5px solid ${t.border}`;
+  catBadge.style.textShadow = `0 0 14px ${t.color}`;
+  resultTheme.textContent = t.theme;
+  setTimeout(() => catBadge.classList.add('show'), 150);
+  setTimeout(() => resultTheme.classList.add('show'), 350);
+  setTimeout(() => launchConfetti(t.color), 550);
+}
+
+function launchConfetti(color) {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = [color, '#a8ffcc', '#7ed6ff', '#ffb3de', '#ffffff', '#ffcc80'];
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const size = 8 + Math.random() * 12;
+    p.style.cssText = `left:${Math.random()*100}vw;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'3px'};--dur:${1.8+Math.random()*2}s;--delay:${Math.random()*0.6}s;--drift:${Math.random()*300-150}px;--rot:${Math.random()*720}deg;`;
+    container.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  }
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const newH = getItemH();
+    if (newH === ITEM_H) return;
+    ITEM_H = newH;
+    document.documentElement.style.setProperty('--item-h', ITEM_H + 'px');
+    buildReel();
+    currentOffset = THEMES.length * ITEM_H;
+    reel.style.transform = `translateY(-${currentOffset}px)`;
+    placeholder.style.display = '';
+    placeholder.textContent = 'ボタンをおしてスタート！';
+    catBadge.classList.remove('show');
+    resultTheme.classList.remove('show');
+    slotMachine.classList.remove('lit');
+    spinBtn.textContent = 'スタート！';
+  }, 200);
+});
+
+(async () => {
+  spinBtn.disabled = true;
+  spinBtn.textContent = '読み込み中...';
+  await loadThemes();
+  buildReel();
+  currentOffset = THEMES.length * ITEM_H;
+  reel.style.transform = `translateY(-${currentOffset}px)`;
+  spinBtn.disabled = false;
+  spinBtn.textContent = 'スタート！';
+  spinBtn.addEventListener('click', spin);
+})();
+</script>
+</body>
+</html>
